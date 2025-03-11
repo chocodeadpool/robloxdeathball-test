@@ -1,0 +1,2 @@
+-- Test Script
+print("this is a test 1234") -- This will print in the executor's console
