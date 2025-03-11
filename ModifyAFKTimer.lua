@@ -12,13 +12,22 @@ local targetTimer = 1 -- Target timer value (1 second)
 -- Debug: Check if the script is running
 print("Script loaded!") -- This should appear in the console if the script is executing
 
+-- Function to recursively search for the AFK timer
+local function findAFKTimer(gui)
+    for _, child in pairs(gui:GetDescendants()) do
+        if child:IsA("TextLabel") and child.Name == "AFKTimer" then
+            return child
+        end
+    end
+    return nil
+end
+
 -- Function to change the AFK lobby timer
 local function changeTimer()
-    -- Find the AFK timer in the player's GUI
     local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    local afkTimer = playerGui:FindFirstChild("AFKTimer", true) -- Search recursively
+    local afkTimer = findAFKTimer(playerGui)
 
-    if afkTimer and afkTimer:IsA("TextLabel") then
+    if afkTimer then
         -- Change the timer value
         afkTimer.Text = tostring(targetTimer)
         timerChanged = true
