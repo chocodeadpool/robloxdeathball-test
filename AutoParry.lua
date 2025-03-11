@@ -14,6 +14,7 @@ local parryDistance = 10 -- Distance to auto-parry
 local parryCooldown = 1 -- Cooldown in seconds
 local canParry = true
 local autoParryEnabled = false -- Toggleable feature
+local ball = nil -- Store the DeathBall object
 
 -- Function to find the DeathBall
 local function findDeathBall()
@@ -77,8 +78,14 @@ end)
 
 -- Auto-Parry Function
 local function parryBall()
-    local ball = findDeathBall()
-    if not ball or not rootPart or not autoParryEnabled or not canParry then
+    if not ball then
+        ball = findDeathBall() -- Try to find the DeathBall once
+        if not ball then
+            return -- Exit if the DeathBall is not found
+        end
+    end
+
+    if not rootPart or not autoParryEnabled or not canParry then
         return
     end
 
