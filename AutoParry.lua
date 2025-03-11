@@ -1,21 +1,23 @@
--- Generic Auto-Parry Script for Exploitation Testing
+-- Auto-Parry Script for Death Ball
 -- Host this script on GitHub and call it using a loader script.
 
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local target = workspace:FindFirstChild("Target") -- Replace "Target" with the object you want to interact with
+local ball = workspace:WaitForChild("DeathBall") -- Replace "DeathBall" with the actual ball name
 local parryDistance = 10 -- Distance to auto-parry
 local parryCooldown = 1 -- Cooldown in seconds
 local canParry = true
 local autoParryEnabled = false -- Toggleable feature
+
+-- Debug: Check if the script is running
+print("Script loaded!") -- This should appear in the console if the script is executing
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -65,15 +67,18 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- Auto-Parry Function
-local function parryTarget()
-    if not target or not rootPart or not autoParryEnabled or not canParry then
+local function parryBall()
+    if not ball or not rootPart or not autoParryEnabled or not canParry then
         return
     end
 
-    if (rootPart.Position - target.Position).Magnitude <= parryDistance then
+    local distance = (rootPart.Position - ball.Position).Magnitude
+    print("Distance to ball:", distance) -- Debug distance
+
+    if distance <= parryDistance then
         canParry = false
-        target.Velocity = (target.Position - rootPart.Position).Unit * 50 -- Push the target away
-        print("Parried the target!")
+        ball.Velocity = (ball.Position - rootPart.Position).Unit * 50 -- Push the ball away
+        print("Parried the ball!")
 
         -- Cooldown
         task.wait(parryCooldown)
@@ -83,7 +88,7 @@ end
 
 -- Heartbeat Loop
 RunService.Heartbeat:Connect(function()
-    pcall(parryTarget) -- Catch errors
+    pcall(parryBall) -- Catch errors
 end)
 
 -- Toggle GUI with RightShift
@@ -94,4 +99,5 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
-print("Auto-Parry Script Loaded")
+-- Debug: Verify GUI creation
+print("GUI created. Press RightShift to toggle.")
