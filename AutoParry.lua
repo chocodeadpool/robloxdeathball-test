@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 -- Variables
 local player = Players.LocalPlayer
@@ -28,6 +29,7 @@ frame.Size = UDim2.new(0, 200, 0, 100)
 frame.Position = UDim2.new(0.5, -100, 0.5, -50)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
+frame.Visible = false -- Start with the UI hidden
 
 local title = Instance.new("TextLabel")
 title.Parent = frame
@@ -88,11 +90,8 @@ end)
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
         frame.Visible = not frame.Visible
-        print("GUI Toggled")
+        print("GUI Toggled. Visible:", frame.Visible)
     end
 end)
-
--- Ensure the GUI is visible by default
-frame.Visible = true
 
 print("Auto-Parry Script Loaded")
