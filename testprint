@@ -1,2 +1,12 @@
--- Test Script
-print("this is a test 1234") -- This will print in the executor's console
+-- Final Debug Script
+print("Script loaded!") -- Verify script execution
+print("this is a test 1234") -- Test print
+
+-- Debug: Check if the script is running
+local success, err = pcall(function()
+    print("Script is running!")
+end)
+
+if not success then
+    warn("Script failed to run:", err)
+end
