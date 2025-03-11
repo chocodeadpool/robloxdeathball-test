@@ -91,13 +91,13 @@ RunService.Heartbeat:Connect(function()
     pcall(parryBall) -- Catch errors
 end)
 
--- Toggle GUI with RightShift
+-- Toggle GUI with NumLock
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightShift then
+    if input.KeyCode == Enum.KeyCode.NumLock then
         frame.Visible = not frame.Visible
         print("GUI Toggled. Visible:", frame.Visible)
     end
 end)
 
 -- Debug: Verify GUI creation
-print("GUI created. Press RightShift to toggle.")
+print("GUI created. Press NumLock to toggle.")
