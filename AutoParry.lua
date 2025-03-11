@@ -1,17 +1,16 @@
--- Auto-Parry DeathBall Script with Toggleable UI
+-- Generic Auto-Parry Script for Exploitation Testing
 -- Host this script on GitHub and call it using a loader script.
 
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local ball = workspace:WaitForChild("DeathBall") -- Replace with your DeathBall name
+local target = workspace:FindFirstChild("Target") -- Replace "Target" with the object you want to interact with
 local parryDistance = 10 -- Distance to auto-parry
 local parryCooldown = 1 -- Cooldown in seconds
 local canParry = true
@@ -64,15 +63,15 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 -- Auto-Parry Function
-local function parryBall()
-    if not ball or not rootPart or not autoParryEnabled or not canParry then
+local function parryTarget()
+    if not target or not rootPart or not autoParryEnabled or not canParry then
         return
     end
 
-    if (rootPart.Position - ball.Position).Magnitude <= parryDistance then
+    if (rootPart.Position - target.Position).Magnitude <= parryDistance then
         canParry = false
-        ball.Velocity = (ball.Position - rootPart.Position).Unit * 50 -- Push the ball away
-        print("Parried the ball!")
+        target.Velocity = (target.Position - rootPart.Position).Unit * 50 -- Push the target away
+        print("Parried the target!")
 
         -- Cooldown
         task.wait(parryCooldown)
@@ -82,15 +81,18 @@ end
 
 -- Heartbeat Loop
 RunService.Heartbeat:Connect(function()
-    pcall(parryBall) -- Catch errors
+    pcall(parryTarget) -- Catch errors
 end)
 
 -- Toggle GUI with RightShift
-UserInputService.InputEnded:Connect(function(input)
+UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
         frame.Visible = not frame.Visible
         print("GUI Toggled")
     end
 end)
+
+-- Ensure the GUI is visible by default
+frame.Visible = true
 
 print("Auto-Parry Script Loaded")
