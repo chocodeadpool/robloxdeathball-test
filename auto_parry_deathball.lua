@@ -1,4 +1,4 @@
--- Auto-Parry Death Ball Script
+-- Auto-Parry Death Ball Script (Optimized)
 -- Place this script in a LocalScript (for player-side functionality)
 
 local player = game.Players.LocalPlayer
@@ -13,6 +13,10 @@ local canParry = true
 
 -- Function to parry the ball
 local function parryBall()
+    if not ball or not rootPart then
+        return -- Exit if the ball or rootPart is missing
+    end
+
     if canParry and (rootPart.Position - ball.Position).Magnitude <= parryDistance then
         canParry = false
         ball.Velocity = (ball.Position - rootPart.Position).Unit * 50 -- Push the ball away
@@ -24,8 +28,7 @@ local function parryBall()
     end
 end
 
--- Main loop to check for parry conditions
-while true do
-    parryBall()
-    task.wait(0.1) -- Adjust the wait time for performance
-end
+-- Use a heartbeat event instead of a while loop
+game:GetService("RunService").Heartbeat:Connect(function()
+    pcall(parryBall) -- Use pcall to catch errors
+end)
