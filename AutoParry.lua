@@ -5,42 +5,28 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local MarketplaceService = game:GetService("MarketplaceService")
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local ball = workspace:WaitForChild("DeathBall") -- Replace "DeathBall" with the actual ball name
 local parryDistance = 10 -- Distance to auto-parry
 local parryCooldown = 1 -- Cooldown in seconds
 local canParry = true
 local autoParryEnabled = false -- Toggleable feature
 
+-- Function to find the DeathBall
+local function findDeathBall()
+    local ball = workspace:FindFirstChild("DeathBall") -- Use FindFirstChild instead of WaitForChild
+    if not ball then
+        warn("DeathBall not found in workspace!")
+        return nil
+    end
+    return ball
+end
+
 -- Debug: Check if the script is running
 print("Script loaded!") -- This should appear in the console if the script is executing
-
--- Function to get the game's name
-local function getGameName()
-    local success, gameName = pcall(function()
-        return MarketplaceService:GetProductInfo(game.PlaceId).Name
-    end)
-    if success then
-        return gameName
-    else
-        warn("Failed to get game name:", gameName)
-        return "Unknown"
-    end
-end
-
--- Check if the game is the correct one
-local gameName = getGameName()
-print("Game Name:", gameName) -- Debug: Print the game name
-
-if gameName ~= "ZekeHub" then -- Replace "ZekeHub" with the correct game name
-    warn("This script is not designed for this game.")
-    return -- Stop the script if it's not the correct game
-end
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -91,6 +77,7 @@ end)
 
 -- Auto-Parry Function
 local function parryBall()
+    local ball = findDeathBall()
     if not ball or not rootPart or not autoParryEnabled or not canParry then
         return
     end
