@@ -11,15 +11,19 @@ local parryDistance = 10 -- Distance at which auto-parry activates
 local parryCooldown = 3 -- Cooldown time in seconds
 local canParry = true
 
--- Assume these are the conditions for intermission and arena
+-- Variables to track game state
 local intermissionOver = false
 local playerInArena = false
 
 -- Function to check if the player is inside the arena
 local function isPlayerInArena()
-    -- Replace with your logic to check if the player is inside the arena
-    -- For example, you might check if the player's position is within certain bounds
-    return playerInArena
+    -- Replace this with your logic to check if the player is inside the arena
+    -- Example: Check if the player's position is within certain bounds
+    local arenaCenter = Vector3.new(0, 0, 0) -- Replace with your arena's center position
+    local arenaSize = Vector3.new(100, 100, 100) -- Replace with your arena's size
+    local playerPosition = rootPart.Position
+
+    return (playerPosition - arenaCenter).Magnitude <= arenaSize.Magnitude / 2
 end
 
 -- Function to parry the ball
@@ -32,7 +36,7 @@ local function parryBall()
         canParry = false
         ball.Velocity = (ball.Position - rootPart.Position).Unit * 50 -- Push the ball away
         print("Parried the ball!")
-        
+
         -- Cooldown before next parry
         task.wait(parryCooldown)
         canParry = true
@@ -46,14 +50,28 @@ end)
 
 -- Example event listeners to update intermission and arena status
 -- Replace these with your actual event listeners
-game:GetService("ReplicatedStorage").IntermissionOverEvent.OnClientEvent:Connect(function()
+local function onIntermissionOver()
     intermissionOver = true
-end)
+    print("Intermission is over!")
+end
 
-game:GetService("ReplicatedStorage").PlayerEnteredArenaEvent.OnClientEvent:Connect(function()
+local function onPlayerEnteredArena()
     playerInArena = true
-end)
+    print("Player entered the arena!")
+end
 
-game:GetService("ReplicatedStorage").PlayerLeftArenaEvent.OnClientEvent:Connect(function()
+local function onPlayerLeftArena()
     playerInArena = false
-end)
+    print("Player left the arena!")
+end
+
+-- Replace these with your actual RemoteEvents or BindableEvents
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local intermissionOverEvent = replicatedStorage:WaitForChild("IntermissionOverEvent")
+local playerEnteredArenaEvent = replicatedStorage:WaitForChild("PlayerEnteredArenaEvent")
+local playerLeftArenaEvent = replicatedStorage:WaitForChild("PlayerLeftArenaEvent")
+
+-- Connect to the events
+intermissionOverEvent.OnClientEvent:Connect(onIntermissionOver)
+playerEnteredArenaEvent.OnClientEvent:Connect(onPlayerEnteredArena)
+playerLeftArenaEvent.OnClientEvent:Connect(onPlayerLeftArena)
