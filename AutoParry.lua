@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 -- Variables
 local player = Players.LocalPlayer
@@ -18,6 +19,28 @@ local autoParryEnabled = false -- Toggleable feature
 
 -- Debug: Check if the script is running
 print("Script loaded!") -- This should appear in the console if the script is executing
+
+-- Function to get the game's name
+local function getGameName()
+    local success, gameName = pcall(function()
+        return MarketplaceService:GetProductInfo(game.PlaceId).Name
+    end)
+    if success then
+        return gameName
+    else
+        warn("Failed to get game name:", gameName)
+        return "Unknown"
+    end
+end
+
+-- Check if the game is the correct one
+local gameName = getGameName()
+print("Game Name:", gameName) -- Debug: Print the game name
+
+if gameName ~= "ZekeHub" then -- Replace "ZekeHub" with the correct game name
+    warn("This script is not designed for this game.")
+    return -- Stop the script if it's not the correct game
+end
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
