@@ -77,9 +77,38 @@ local function hover()
 end
 
 -- Heartbeat Loop
-RunService.Heartbeat:Connect(function()
+local heartbeatConnection
+heartbeatConnection = RunService.Heartbeat:Connect(function()
     pcall(hover) -- Catch errors
 end)
+
+-- Toggle GUI with NumLock
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.NumLock then
+        frame.Visible = not frame.Visible
+        print("GUI Toggled. Visible:", frame.Visible)
+    end
+end)
+
+-- Cleanup on character change or script stop
+local function cleanup()
+    if heartbeatConnection then
+        heartbeatConnection:Disconnect()
+        heartbeatConnection = nil
+    end
+    if screenGui then
+        screenGui:Destroy()
+    end
+end
+
+-- Listen for character changes
+player.CharacterAdded:Connect(function()
+    cleanup()
+    character = player.Character
+    rootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+player.CharacterRemoving:Connect(cleanup)
 
 -- Debug: Verify GUI creation
 print("GUI created. Hover is OFF by default.")
