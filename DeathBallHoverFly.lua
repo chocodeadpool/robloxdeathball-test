@@ -1,65 +1,85 @@
--- DeathBall Hover/Fly Script
--- Place this script in a LocalScript (for player-side functionality)
+-- Hover Script for Roblox Death Ball
+-- Host this script on GitHub and call it using a loader script.
 
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
-local UserInputService = game:GetService("UserInputService")
+-- Services
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
--- Hover/Fly Settings
+-- Variables
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+local hoverEnabled = false -- Toggleable feature (default off)
 local hoverHeight = 5 -- Height above the ground to hover
-local flySpeed = 50 -- Speed of flying movement
-local isFlying = false
+local hoverSpeed = 50 -- Speed of hover movement
 
--- Enable flying when the player jumps
-UserInputService.JumpRequest:Connect(function()
-    if humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-        isFlying = true
-        humanoid:ChangeState(Enum.HumanoidStateType.Flying)
+-- Debug: Check if the script is running
+print("Script loaded!") -- This should appear in the console if the script is executing
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.CoreGui
+screenGui.Name = "HoverUI"
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame")
+frame.Parent = screenGui
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+frame.Visible = true -- UI is displayed by default
+
+local title = Instance.new("TextLabel")
+title.Parent = frame
+title.Text = "Hover"
+title.Size = UDim2.new(1, 0, 0.3, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Parent = frame
+toggleButton.Size = UDim2.new(0.8, 0, 0.4, 0)
+toggleButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+toggleButton.Text = "OFF"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+toggleButton.Font = Enum.Font.SourceSans
+toggleButton.TextSize = 18
+
+-- Toggle Hover
+toggleButton.MouseButton1Click:Connect(function()
+    hoverEnabled = not hoverEnabled
+    if hoverEnabled then
+        toggleButton.Text = "ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        print("Hover Enabled")
+    else
+        toggleButton.Text = "OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+        print("Hover Disabled")
     end
 end)
 
--- Disable flying when the player lands
-humanoid.StateChanged:Connect(function(_, newState)
-    if newState == Enum.HumanoidStateType.Landed then
-        isFlying = false
-    end
-end)
-
--- Fly movement logic
-local function fly()
-    if not isFlying or not rootPart then
+-- Hover Function
+local function hover()
+    if not hoverEnabled or not rootPart then
         return
     end
 
-    -- Get player input
-    local moveDirection = Vector3.zero
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-        moveDirection = moveDirection + rootPart.CFrame.LookVector
-    end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-        moveDirection = moveDirection - rootPart.CFrame.LookVector
-    end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-        moveDirection = moveDirection - rootPart.CFrame.RightVector
-    end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-        moveDirection = moveDirection + rootPart.CFrame.RightVector
-    end
-
-    -- Normalize movement direction
-    if moveDirection.Magnitude > 0 then
-        moveDirection = moveDirection.Unit
-    end
-
-    -- Apply movement
-    rootPart.Velocity = moveDirection * flySpeed + Vector3.new(0, hoverHeight, 0)
+    -- Calculate hover position
+    local hoverPosition = rootPart.Position + Vector3.new(0, hoverHeight, 0)
+    local direction = (hoverPosition - rootPart.Position).Unit
+    rootPart.Velocity = direction * hoverSpeed
 end
 
--- Update fly movement every frame
+-- Heartbeat Loop
 RunService.Heartbeat:Connect(function()
-    pcall(fly)
+    pcall(hover) -- Catch errors
 end)
+
+-- Debug: Verify GUI creation
+print("GUI created. Hover is OFF by default.")
