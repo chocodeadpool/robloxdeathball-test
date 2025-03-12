@@ -15,7 +15,7 @@ local hoverHeight = 5 -- Height above the ground to hover
 local hoverSpeed = 50 -- Speed of hover movement
 
 -- Debug: Check if the script is running
-print("Script loaded!") -- This should appear in the console if the script is executing
+-- print("Script loaded!") -- This should appear in the console if the script is executing
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -56,11 +56,11 @@ toggleButton.MouseButton1Click:Connect(function()
     if hoverEnabled then
         toggleButton.Text = "ON"
         toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-        print("Hover Enabled")
+        -- print("Hover Enabled")
     else
         toggleButton.Text = "OFF"
         toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-        print("Hover Disabled")
+        -- print("Hover Disabled")
     end
 end)
 
@@ -112,7 +112,7 @@ end)
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.NumLock then
         frame.Visible = not frame.Visible
-        print("GUI Toggled. Visible:", frame.Visible)
+        -- print("GUI Toggled. Visible:", frame.Visible)
     end
 end)
 
@@ -137,4 +137,4 @@ end)
 player.CharacterRemoving:Connect(cleanup)
 
 -- Debug: Verify GUI creation
-print("GUI created. Hover is OFF by default.")
+-- print("GUI created. Hover is OFF by default.")
