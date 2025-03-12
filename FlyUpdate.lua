@@ -31,15 +31,35 @@ frame.BorderSizePixel = 0
 frame.Visible = true
 frame.Active = true
 
--- Title
-local title = Instance.new("TextLabel")
-title.Parent = frame
-title.Text = "Fly Height Control"
-title.Size = UDim2.new(1, 0, 0.2, 0)
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
+-- Custom Draggable UI Logic
+local dragging, dragInput, dragStart, startPos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
 
 -- Toggle Button
 local toggleButton = Instance.new("TextButton")
@@ -59,7 +79,7 @@ toggleButton.MouseButton1Click:Connect(function()
     else
         toggleButton.Text = "OFF"
         toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-        humanoid.PlatformStand = false -- Ensure the player doesn't stay floating
+        humanoid.PlatformStand = false
     end
 end)
 
@@ -72,7 +92,7 @@ slider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 
 local sliderFill = Instance.new("Frame")
 sliderFill.Parent = slider
-sliderFill.Size = UDim2.new(0.5, 0, 1, 0) -- Default to 50%
+sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
 sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 
 local sliderButton = Instance.new("TextButton")
@@ -103,7 +123,7 @@ UserInputService.InputChanged:Connect(function(input)
         sliderPos = math.clamp(sliderPos, 0, 1)
         sliderFill.Size = UDim2.new(sliderPos, 0, 1, 0)
         sliderButton.Position = UDim2.new(sliderPos, -5, 0, 0)
-        hoverHeight = math.floor(sliderPos * 20) -- Adjust height range (0 to 20)
+        hoverHeight = math.floor(sliderPos * 20)
         sliderValue.Text = "Height: " .. hoverHeight
     end
 end)
@@ -114,13 +134,21 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Smooth Hovering
+-- Fixed Hovering Function
 local function hover()
     if not hoverEnabled or not rootPart then return end
     humanoid.PlatformStand = true
-    local ray = workspace:Raycast(rootPart.Position, Vector3.new(0, -50, 0), RaycastParams.new())
-    local targetHeight = (ray and ray.Position.Y or rootPart.Position.Y) + hoverHeight
-    rootPart.Velocity = Vector3.new(0, (targetHeight - rootPart.Position.Y) * 2, 0)
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+    local raycastResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -50, 0), raycastParams)
+
+    if raycastResult and raycastResult.Position then
+        local targetHeight = raycastResult.Position.Y + hoverHeight
+        rootPart.Velocity = Vector3.new(0, (targetHeight - rootPart.Position.Y) * 2, 0)
+    end
 end
 
 RunService.Heartbeat:Connect(hover)
