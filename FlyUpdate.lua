@@ -2,20 +2,18 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 -- Variables
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local hoverEnabled = false -- Toggleable feature (default off)
-local hoverHeight = 5 -- Height above the ground to hover
-local hoverSpeed = 50 -- Speed of hover movement
-local isDragging = false -- For UI dragging
+local hoverEnabled = false
+local hoverHeight = 5 -- Default hover height
+local isDragging = false
 local dragStartPos, frameStartPos
 
 -- Debug: Check if the script is running
-print("Script loaded!") -- This should appear in the console if the script is executing
+print("Script loaded!")
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -25,18 +23,18 @@ screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
 frame.Parent = screenGui
-frame.Size = UDim2.new(0, 200, 0, 150) -- Increased height for slider
+frame.Size = UDim2.new(0, 200, 0, 150)
 frame.Position = UDim2.new(0.5, -100, 0.5, -75)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
-frame.Visible = true -- UI is displayed by default
-frame.Active = true -- Allows UI to be draggable
-frame.Draggable = true -- Enables dragging
+frame.Visible = true
+frame.Active = true
+frame.Draggable = true
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Parent = frame
-title.Text = "Hover Control"
+title.Text = "Fly Height Control"
 title.Size = UDim2.new(1, 0, 0.2, 0)
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
@@ -54,7 +52,7 @@ toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 toggleButton.Font = Enum.Font.SourceSans
 toggleButton.TextSize = 18
 
--- Slider for Hover Speed
+-- Slider for Hover Height
 local slider = Instance.new("Frame")
 slider.Parent = frame
 slider.Size = UDim2.new(0.8, 0, 0.1, 0)
@@ -64,7 +62,7 @@ slider.BorderSizePixel = 0
 
 local sliderFill = Instance.new("Frame")
 sliderFill.Parent = slider
-sliderFill.Size = UDim2.new(0.5, 0, 1, 0) -- Default to 50% speed
+sliderFill.Size = UDim2.new(0.5, 0, 1, 0) -- Default to 50% height
 sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 sliderFill.BorderSizePixel = 0
 
@@ -79,7 +77,7 @@ local sliderValue = Instance.new("TextLabel")
 sliderValue.Parent = frame
 sliderValue.Size = UDim2.new(0.8, 0, 0.1, 0)
 sliderValue.Position = UDim2.new(0.1, 0, 0.7, 0)
-sliderValue.Text = "Speed: 50%"
+sliderValue.Text = "Height: 5"
 sliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
 sliderValue.BackgroundTransparency = 1
 sliderValue.Font = Enum.Font.SourceSans
@@ -105,8 +103,8 @@ local function updateSlider(input)
     local sliderPos = (input.Position.X - slider.AbsolutePosition.X) / sliderSize
     sliderPos = math.clamp(sliderPos, 0, 1)
     sliderFill.Size = UDim2.new(sliderPos, 0, 1, 0)
-    hoverSpeed = sliderPos * 100 -- Adjust speed based on slider position
-    sliderValue.Text = "Speed: " .. math.floor(sliderPos * 100) .. "%"
+    hoverHeight = sliderPos * 20 -- Adjust height range (0 to 20)
+    sliderValue.Text = "Height: " .. math.floor(hoverHeight)
 end
 
 sliderButton.MouseButton1Down:Connect(function()
@@ -130,16 +128,27 @@ local function hover()
         return
     end
 
-    -- Calculate hover position
-    local hoverPosition = rootPart.Position + Vector3.new(0, hoverHeight, 0)
-    local direction = (hoverPosition - rootPart.Position).Unit
-    rootPart.Velocity = direction * hoverSpeed
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+    local raycastResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -50, 0), raycastParams) -- Increased raycast distance
+
+    local targetHeight
+    if raycastResult then
+        targetHeight = raycastResult.Position.Y + hoverHeight
+    else
+        targetHeight = rootPart.Position.Y + hoverHeight
+    end
+
+    local hoverPosition = Vector3.new(rootPart.Position.X, targetHeight, rootPart.Position.Z)
+    rootPart.CFrame = CFrame.new(hoverPosition)
 end
 
 -- Heartbeat Loop
 local heartbeatConnection
 heartbeatConnection = RunService.Heartbeat:Connect(function()
-    pcall(hover) -- Catch errors
+    pcall(hover)
 end)
 
 -- Toggle GUI with NumLock
