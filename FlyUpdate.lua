@@ -7,13 +7,14 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-local hoverEnabled = false
+local hoverEnabled = false -- Toggleable feature (default off)
 local hoverHeight = 5 -- Default hover height
-local isDragging = false
+local hoverSpeed = 50 -- Speed of hover movement
+local isDragging = false -- For UI dragging
 local dragStartPos, frameStartPos
 
 -- Debug: Check if the script is running
-print("Script loaded!")
+print("Script loaded!") -- This should appear in the console if the script is executing
 
 -- Create GUI
 local screenGui = Instance.new("ScreenGui")
@@ -23,19 +24,19 @@ screenGui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
 frame.Parent = screenGui
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+frame.Size = UDim2.new(0, 200, 0, 180) -- Increased height for sliders
+frame.Position = UDim2.new(0.5, -100, 0.5, -90)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
-frame.Visible = true
-frame.Active = true
-frame.Draggable = true
+frame.Visible = true -- UI is displayed by default
+frame.Active = true -- Allows UI to be draggable
+frame.Draggable = true -- Enables dragging
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Parent = frame
-title.Text = "Fly Height Control"
-title.Size = UDim2.new(1, 0, 0.2, 0)
+title.Text = "Hover Control"
+title.Size = UDim2.new(1, 0, 0.15, 0)
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.SourceSansBold
@@ -44,44 +45,69 @@ title.TextSize = 20
 -- Toggle Button
 local toggleButton = Instance.new("TextButton")
 toggleButton.Parent = frame
-toggleButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-toggleButton.Position = UDim2.new(0.1, 0, 0.25, 0)
+toggleButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+toggleButton.Position = UDim2.new(0.1, 0, 0.2, 0)
 toggleButton.Text = "OFF"
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 toggleButton.Font = Enum.Font.SourceSans
 toggleButton.TextSize = 18
 
--- Slider for Hover Height
-local slider = Instance.new("Frame")
-slider.Parent = frame
-slider.Size = UDim2.new(0.8, 0, 0.1, 0)
-slider.Position = UDim2.new(0.1, 0, 0.55, 0)
-slider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-slider.BorderSizePixel = 0
+-- Hover Height Slider
+local heightSlider = Instance.new("Frame")
+heightSlider.Parent = frame
+heightSlider.Size = UDim2.new(0.8, 0, 0.1, 0)
+heightSlider.Position = UDim2.new(0.1, 0, 0.45, 0)
+heightSlider.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+heightSlider.BorderSizePixel = 0
 
-local sliderFill = Instance.new("Frame")
-sliderFill.Parent = slider
-sliderFill.Size = UDim2.new(0.5, 0, 1, 0) -- Default to 50% height
-sliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-sliderFill.BorderSizePixel = 0
+local heightSliderFill = Instance.new("Frame")
+heightSliderFill.Parent = heightSlider
+heightSliderFill.Size = UDim2.new(0.5, 0, 1, 0) -- Default to 50% height
+heightSliderFill.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+heightSliderFill.BorderSizePixel = 0
 
-local sliderButton = Instance.new("TextButton")
-sliderButton.Parent = sliderFill
-sliderButton.Size = UDim2.new(1, 0, 1, 0)
-sliderButton.Text = ""
-sliderButton.BackgroundTransparency = 1
+local heightSliderButton = Instance.new("TextButton")
+heightSliderButton.Parent = heightSliderFill
+heightSliderButton.Size = UDim2.new(1, 0, 1, 0)
+heightSliderButton.Text = ""
+heightSliderButton.BackgroundTransparency = 1
 
--- Slider Value Display
-local sliderValue = Instance.new("TextLabel")
-sliderValue.Parent = frame
-sliderValue.Size = UDim2.new(0.8, 0, 0.1, 0)
-sliderValue.Position = UDim2.new(0.1, 0, 0.7, 0)
-sliderValue.Text = "Height: 5"
-sliderValue.TextColor3 = Color3.fromRGB(255, 255, 255)
-sliderValue.BackgroundTransparency = 1
-sliderValue.Font = Enum.Font.SourceSans
-sliderValue.TextSize = 16
+-- Hover Height Value Display
+local heightValue = Instance.new("TextLabel")
+heightValue.Parent = frame
+heightValue.Size = UDim2.new(0.8, 0, 0.1, 0)
+heightValue.Position = UDim2.new(0.1, 0, 0.6, 0)
+heightValue.Text = "Height: 5"
+heightValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+heightValue.BackgroundTransparency = 1
+heightValue.Font = Enum.Font.SourceSans
+heightValue.TextSize = 16
+
+-- Slider Logic for Hover Height
+local function updateHeightSlider(input)
+    local sliderSize = heightSlider.AbsoluteSize.X
+    local sliderPos = (input.Position.X - heightSlider.AbsolutePosition.X) / sliderSize
+    sliderPos = math.clamp(sliderPos, 0, 1)
+    heightSliderFill.Size = UDim2.new(sliderPos, 0, 1, 0)
+    hoverHeight = math.floor(sliderPos * 20) -- Adjust height between 0 and 20
+    heightValue.Text = "Height: " .. hoverHeight
+end
+
+heightSliderButton.MouseButton1Down:Connect(function()
+    updateHeightSlider(UserInputService:GetMouseLocation())
+    local connection
+    connection = UserInputService.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateHeightSlider(input)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            connection:Disconnect()
+        end
+    end)
+end)
 
 -- Toggle Hover
 toggleButton.MouseButton1Click:Connect(function()
@@ -97,58 +123,22 @@ toggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Slider Logic
-local function updateSlider(input)
-    local sliderSize = slider.AbsoluteSize.X
-    local sliderPos = (input.Position.X - slider.AbsolutePosition.X) / sliderSize
-    sliderPos = math.clamp(sliderPos, 0, 1)
-    sliderFill.Size = UDim2.new(sliderPos, 0, 1, 0)
-    hoverHeight = sliderPos * 20 -- Adjust height range (0 to 20)
-    sliderValue.Text = "Height: " .. math.floor(hoverHeight)
-end
-
-sliderButton.MouseButton1Down:Connect(function()
-    updateSlider(UserInputService:GetMouseLocation())
-    local connection
-    connection = UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            updateSlider(input)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            connection:Disconnect()
-        end
-    end)
-end)
-
 -- Hover Function
 local function hover()
     if not hoverEnabled or not rootPart then
         return
     end
 
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-
-    local raycastResult = workspace:Raycast(rootPart.Position, Vector3.new(0, -50, 0), raycastParams) -- Increased raycast distance
-
-    local targetHeight
-    if raycastResult then
-        targetHeight = raycastResult.Position.Y + hoverHeight
-    else
-        targetHeight = rootPart.Position.Y + hoverHeight
-    end
-
-    local hoverPosition = Vector3.new(rootPart.Position.X, targetHeight, rootPart.Position.Z)
-    rootPart.CFrame = CFrame.new(hoverPosition)
+    -- Calculate hover position
+    local hoverPosition = rootPart.Position + Vector3.new(0, hoverHeight, 0)
+    local direction = (hoverPosition - rootPart.Position).Unit
+    rootPart.Velocity = direction * hoverSpeed
 end
 
 -- Heartbeat Loop
 local heartbeatConnection
 heartbeatConnection = RunService.Heartbeat:Connect(function()
-    pcall(hover)
+    pcall(hover) -- Catch errors
 end)
 
 -- Toggle GUI with NumLock
