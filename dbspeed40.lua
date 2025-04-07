@@ -1,18 +1,18 @@
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Player setup
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-player.CharacterAdded:Connect(function(newChar)
-    character = newChar
-end)
+local humanoid = character:WaitForChild("Humanoid")
 
 -- Speed variables
-local originalWalkSpeed = 16
+local originalWalkSpeed = humanoid.WalkSpeed
 local boostedWalkSpeed = originalWalkSpeed + 40
 local isBoosted = false
+local speedConnection = nil
 
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -23,11 +23,11 @@ screenGui.Parent = player.PlayerGui
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 150, 0, 50)
-mainFrame.Position = UDim2.new(0.5, -75, 0, 10) -- Center top
+mainFrame.Position = UDim2.new(0.5, -75, 0, 10)
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 mainFrame.BorderSizePixel = 0
-mainFrame.Active = true -- Allows dragging
-mainFrame.Draggable = true -- Makes frame movable
+mainFrame.Active = true
+mainFrame.Draggable = true
 mainFrame.Parent = screenGui
 
 -- Create title bar
@@ -64,36 +64,44 @@ toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 14
 toggleButton.Parent = mainFrame
 
--- Function to update speed
-local function updateSpeed()
-    if character and character:FindFirstChild("Humanoid") then
-        if isBoosted then
-            character.Humanoid.WalkSpeed = boostedWalkSpeed
-            toggleButton.Text = "ON"
-            toggleButton.TextColor3 = Color3.fromRGB(50, 255, 50)
-        else
-            character.Humanoid.WalkSpeed = originalWalkSpeed
-            toggleButton.Text = "OFF"
-            toggleButton.TextColor3 = Color3.fromRGB(255, 50, 50)
+-- Function to continuously apply speed boost
+local function applySpeedBoost()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+    
+    if isBoosted then
+        speedConnection = RunService.Heartbeat:Connect(function()
+            if character and character:FindFirstChild("Humanoid") then
+                humanoid.WalkSpeed = boostedWalkSpeed
+            end
+        end)
+        toggleButton.Text = "ON"
+        toggleButton.TextColor3 = Color3.fromRGB(50, 255, 50)
+    else
+        if character and character:FindFirstChild("Humanoid") then
+            humanoid.WalkSpeed = originalWalkSpeed
         end
+        toggleButton.Text = "OFF"
+        toggleButton.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
 end
 
 -- Toggle button click event
 toggleButton.MouseButton1Click:Connect(function()
     isBoosted = not isBoosted
-    updateSpeed()
+    applySpeedBoost()
 end)
 
--- Update speed when character changes
+-- Handle character changes
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
-    updateSpeed()
+    humanoid = character:WaitForChild("Humanoid")
+    originalWalkSpeed = humanoid.WalkSpeed
+    boostedWalkSpeed = originalWalkSpeed + 40
+    applySpeedBoost()
 end)
 
--- Initialize speed
-if character and character:FindFirstChild("Humanoid") then
-    originalWalkSpeed = character.Humanoid.WalkSpeed
-    boostedWalkSpeed = originalWalkSpeed + 40
-    updateSpeed()
-end
+-- Initialize
+applySpeedBoost()
