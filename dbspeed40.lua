@@ -9,10 +9,11 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
 -- Speed variables
-local originalWalkSpeed = humanoid.WalkSpeed
-local boostedWalkSpeed = originalWalkSpeed + 40
+local boostAmount = 15
 local isBoosted = false
+local moveDirection = Vector3.new(0, 0, 0)
 local speedConnection = nil
+local inputConnection = nil
 
 -- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -64,25 +65,54 @@ toggleButton.Font = Enum.Font.SourceSansBold
 toggleButton.TextSize = 14
 toggleButton.Parent = mainFrame
 
--- Function to continuously apply speed boost
-local function applySpeedBoost()
+-- Function to apply velocity-based movement boost
+local function applyMovementBoost()
     if speedConnection then
         speedConnection:Disconnect()
         speedConnection = nil
     end
     
+    if inputConnection then
+        inputConnection:Disconnect()
+        inputConnection = nil
+    end
+    
     if isBoosted then
-        speedConnection = RunService.Heartbeat:Connect(function()
-            if character and character:FindFirstChild("Humanoid") then
-                humanoid.WalkSpeed = boostedWalkSpeed
+        -- Track movement input
+        inputConnection = UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                return
+            end
+            
+            if input.UserInputType == Enum.UserInputType.Gamepad1 then
+                moveDirection = Vector3.new(input.Position.X, 0, -input.Position.Y)
             end
         end)
+        
+        -- Apply boost force
+        speedConnection = RunService.Heartbeat:Connect(function()
+            if character and character:FindFirstChild("Humanoid") and character:FindFirstChild("HumanoidRootPart") then
+                local rootPart = character.HumanoidRootPart
+                local currentVelocity = rootPart.Velocity
+                
+                -- Only boost when player is trying to move
+                if moveDirection.Magnitude > 0 or humanoid.MoveDirection.Magnitude > 0 then
+                    local boostDirection = humanoid.MoveDirection.Magnitude > 0 and humanoid.MoveDirection or moveDirection.Unit
+                    local boostForce = boostDirection * boostAmount
+                    
+                    -- Apply velocity while preserving vertical movement (jumping/falling)
+                    rootPart.Velocity = Vector3.new(
+                        currentVelocity.X + boostForce.X,
+                        currentVelocity.Y, -- Keep original Y velocity
+                        currentVelocity.Z + boostForce.Z
+                    )
+                end
+            end
+        end)
+        
         toggleButton.Text = "ON"
         toggleButton.TextColor3 = Color3.fromRGB(50, 255, 50)
     else
-        if character and character:FindFirstChild("Humanoid") then
-            humanoid.WalkSpeed = originalWalkSpeed
-        end
         toggleButton.Text = "OFF"
         toggleButton.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
@@ -91,17 +121,16 @@ end
 -- Toggle button click event
 toggleButton.MouseButton1Click:Connect(function()
     isBoosted = not isBoosted
-    applySpeedBoost()
+    applyMovementBoost()
 end)
 
 -- Handle character changes
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
-    originalWalkSpeed = humanoid.WalkSpeed
-    boostedWalkSpeed = originalWalkSpeed + 40
-    applySpeedBoost()
+    character:WaitForChild("HumanoidRootPart")
+    applyMovementBoost()
 end)
 
 -- Initialize
-applySpeedBoost()
+applyMovementBoost()
