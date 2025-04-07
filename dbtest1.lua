@@ -1,171 +1,84 @@
-using UnityEngine;
-using System.Collections;
+-- Death Ball Game in Lua
+local player = nil
+local parryRadius = 2
+local ball = nil
+local ballSpeed = 10
+local canParry = true
+local parryCooldown = 0.5
 
-public class DeathBallGame : MonoBehaviour
-{
-    [Header("Player Settings")]
-    public Transform player;
-    public float parryRadius = 2f;
-    public Color parryCircleColor = Color.red;
-    public float parryCooldown = 0.5f;
+function spawnBall()
+    if ball ~= nil then return end
     
-    [Header("Ball Settings")]
-    public GameObject ballPrefab;
-    public float ballSpeed = 10f;
-    public float curveIntensity = 1f;
-    public float minSpawnInterval = 1f;
-    public float maxSpawnInterval = 3f;
-    
-    private bool canParry = true;
-    private GameObject currentBall;
-    private LineRenderer parryCircle;
-    private Vector3 curveDirection;
-    
-    void Start()
-    {
-        CreateParryCircle();
-        StartCoroutine(SpawnBallRoutine());
+    local spawnPos = {
+        x = math.random(-10, 10),
+        y = 0,
+        z = math.random(-10, 10)
     }
     
-    void CreateParryCircle()
-    {
-        GameObject circleObj = new GameObject("ParryCircle");
-        circleObj.transform.SetParent(player);
-        circleObj.transform.localPosition = Vector3.zero;
-        
-        parryCircle = circleObj.AddComponent<LineRenderer>();
-        parryCircle.material = new Material(Shader.Find("Sprites/Default"));
-        parryCircle.startColor = parryCircleColor;
-        parryCircle.endColor = parryCircleColor;
-        parryCircle.startWidth = 0.1f;
-        parryCircle.endWidth = 0.1f;
-        parryCircle.positionCount = 51; // For a smooth circle
-        parryCircle.loop = true;
-        
-        DrawCircle();
+    -- Create ball (implementation depends on your engine)
+    ball = createBallObject(spawnPos)
+    
+    -- Set initial velocity toward player with some randomness
+    local direction = {
+        x = (player.x - spawnPos.x) + math.random(-3, 3),
+        y = 0,
+        z = (player.z - spawnPos.z) + math.random(-3, 3)
     }
     
-    void DrawCircle()
-    {
-        float angle = 0f;
-        for (int i = 0; i < parryCircle.positionCount; i++)
-        {
-            float x = Mathf.Sin(Mathf.Deg2Rad * angle) * parryRadius;
-            float z = Mathf.Cos(Mathf.Deg2Rad * angle) * parryRadius;
-            parryCircle.SetPosition(i, new Vector3(x, 0f, z));
-            angle += (360f / parryCircle.positionCount);
-        }
+    -- Normalize direction and apply speed
+    local length = math.sqrt(direction.x^2 + direction.y^2 + direction.z^2)
+    ball.velocity = {
+        x = direction.x/length * ballSpeed,
+        y = 0,
+        z = direction.z/length * ballSpeed
     }
+end
+
+function update(deltaTime)
+    if ball == nil or player == nil then return end
     
-    IEnumerator SpawnBallRoutine()
-    {
-        while (true)
-        {
-            yield return new WaitForSeconds(Random.Range(minSpawnInterval, maxSpawnInterval));
-            
-            if (currentBall == null)
-            {
-                SpawnBall();
-            }
-        }
-    }
+    -- Check for parry collision
+    local dx = ball.x - player.x
+    local dz = ball.z - player.z
+    local distance = math.sqrt(dx^2 + dz^2)
     
-    void SpawnBall()
-    {
-        Vector3 spawnPosition = new Vector3(
-            Random.Range(-10f, 10f),
-            0f,
-            Random.Range(-10f, 10f)
-        );
-        
-        currentBall = Instantiate(ballPrefab, spawnPosition, Quaternion.identity);
-        curveDirection = new Vector3(
-            Random.Range(-1f, 1f),
-            0f,
-            Random.Range(-1f, 1f)
-        ).normalized * curveIntensity;
-        
-        // Initial direction towards player with some randomness
-        Vector3 directionToPlayer = (player.position - spawnPosition).normalized;
-        directionToPlayer += new Vector3(
-            Random.Range(-0.3f, 0.3f),
-            0f,
-            Random.Range(-0.3f, 0.3f)
-        );
-        
-        Rigidbody ballRb = currentBall.GetComponent<Rigidbody>();
-        ballRb.velocity = directionToPlayer * ballSpeed;
-    }
+    if distance <= parryRadius and canParry then
+        parryBall()
+    end
     
-    void Update()
-    {
-        if (currentBall != null)
-        {
-            // Apply curve to ball's movement
-            Rigidbody ballRb = currentBall.GetComponent<Rigidbody>();
-            ballRb.AddForce(curveDirection * Time.deltaTime, ForceMode.VelocityChange);
-            
-            // Check for parry collision
-            float distanceToPlayer = Vector3.Distance(currentBall.transform.position, player.position);
-            if (distanceToPlayer <= parryRadius && canParry)
-            {
-                ParryBall();
-            }
-        }
-    }
+    -- Update ball position
+    ball.x = ball.x + ball.velocity.x * deltaTime
+    ball.y = ball.y + ball.velocity.y * deltaTime
+    ball.z = ball.z + ball.velocity.z * deltaTime
+end
+
+function parryBall()
+    canParry = false
     
-    void ParryBall()
-    {
-        canParry = false;
-        
-        // Calculate reflection direction with some randomness
-        Vector3 incomingDirection = currentBall.GetComponent<Rigidbody>().velocity.normalized;
-        Vector3 reflectDirection = Vector3.Reflect(incomingDirection, 
-            (currentBall.transform.position - player.position).normalized);
-        
-        // Add randomness to the reflection
-        reflectDirection += new Vector3(
-            Random.Range(-0.5f, 0.5f),
-            0f,
-            Random.Range(-0.5f, 0.5f)
-        );
-        
-        // Apply new direction with increased speed
-        currentBall.GetComponent<Rigidbody>().velocity = reflectDirection.normalized * ballSpeed * 1.5f;
-        
-        // Change curve direction after parry
-        curveDirection = new Vector3(
-            Random.Range(-1f, 1f),
-            0f,
-            Random.Range(-1f, 1f)
-        ).normalized * curveIntensity * 2f;
-        
-        // Visual feedback
-        StartCoroutine(ParryEffect());
-        StartCoroutine(ParryCooldown());
-    }
+    -- Reflect ball with some randomness
+    ball.velocity.x = -ball.velocity.x + math.random(-2, 2)
+    ball.velocity.z = -ball.velocity.z + math.random(-2, 2)
     
-    IEnumerator ParryEffect()
-    {
-        parryCircle.startColor = Color.white;
-        parryCircle.endColor = Color.white;
-        yield return new WaitForSeconds(0.1f);
-        parryCircle.startColor = parryCircleColor;
-        parryCircle.endColor = parryCircleColor;
-    }
+    -- Normalize and speed up
+    local length = math.sqrt(ball.velocity.x^2 + ball.velocity.z^2)
+    ball.velocity.x = ball.velocity.x/length * ballSpeed * 1.5
+    ball.velocity.z = ball.velocity.z/length * ballSpeed * 1.5
     
-    IEnumerator ParryCooldown()
-    {
-        yield return new WaitForSeconds(parryCooldown);
-        canParry = true;
-    }
+    -- Start cooldown
+    setTimeout(function()
+        canParry = true
+    end, parryCooldown * 1000)
+end
+
+-- Initialization
+function start()
+    player = getPlayerObject() -- You need to implement this
+    createParryCircleVisual()  -- You need to implement this
     
-    void OnDrawGizmos()
-    {
-        if (player != null)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(player.position, parryRadius);
-        }
-    }
-}
+    -- Spawn balls periodically
+    setInterval(function()
+        spawnBall()
+    end, math.random(1000, 3000))
+end
+
+start()
