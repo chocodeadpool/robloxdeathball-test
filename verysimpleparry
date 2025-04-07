@@ -1,0 +1,54 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local function onCharacterAdded(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Check if the character has a root part (necessary for color detection)
+    if not rootPart then return end
+    
+    -- Create a connection to detect color changes
+    local colorConnection
+    colorConnection = rootPart:GetPropertyChangedSignal("Color"):Connect(function()
+        -- Check if the color is red (or close to red)
+        local color = rootPart.Color
+        if color.r > 0.7 and color.g < 0.3 and color.b < 0.3 then
+            -- Simulate F key press
+            local inputObject = {
+                KeyCode = Enum.KeyCode.F,
+                UserInputType = Enum.UserInputType.Keyboard,
+                UserInputState = Enum.UserInputState.Begin
+            }
+            UserInputService:ProcessInput(inputObject)
+            
+            -- Optionally release the key after a short delay
+            task.delay(0.1, function()
+                inputObject.UserInputState = Enum.UserInputState.End
+                UserInputService:ProcessInput(inputObject)
+            end)
+        end
+    end)
+    
+    -- Clean up connection when character is removed
+    character.Destroying:Connect(function()
+        if colorConnection then
+            colorConnection:Disconnect()
+        end
+    end)
+end
+
+-- Set up player connection
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(onCharacterAdded)
+    if player.Character then
+        onCharacterAdded(player.Character)
+    end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+
+-- Handle existing players
+for _, player in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(player)
+end
