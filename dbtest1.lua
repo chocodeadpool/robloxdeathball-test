@@ -1,84 +1,146 @@
--- Death Ball Game in Lua
-local player = nil
-local parryRadius = 2
-local ball = nil
-local ballSpeed = 10
+-- Death Ball Game for Roblox
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Configuration
+local PARRY_RADIUS = 5
+local BALL_SPEED = 50
+local PARRY_COOLDOWN = 0.5
+local BALL_COLOR = Color3.fromRGB(255, 0, 0)
+local PARRY_COLOR = Color3.fromRGB(0, 255, 0)
+local SPAWN_INTERVAL = {1, 3} -- min, max in seconds
+
+-- Player setup
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Create parry circle
+local parryCircle = Instance.new("Part")
+parryCircle.Name = "ParryCircle"
+parryCircle.Shape = Enum.PartType.Cylinder
+parryCircle.Size = Vector3.new(0.2, PARRY_RADIUS*2, PARRY_RADIUS*2)
+parryCircle.Transparency = 0.7
+parryCircle.CanCollide = false
+parryCircle.Anchored = true
+parryCircle.Material = Enum.Material.Neon
+parryCircle.Color = PARRY_COLOR
+parryCircle.Parent = character
+
 local canParry = true
-local parryCooldown = 0.5
+local currentBall = nil
 
-function spawnBall()
-    if ball ~= nil then return end
+-- Function to spawn a ball
+local function spawnBall()
+    if currentBall and currentBall.Parent then return end
     
-    local spawnPos = {
-        x = math.random(-10, 10),
-        y = 0,
-        z = math.random(-10, 10)
-    }
+    -- Random spawn position around the player
+    local spawnPosition = humanoidRootPart.Position + 
+        Vector3.new(
+            math.random(-20, 20),
+            5,
+            math.random(-20, 20)
+        )
     
-    -- Create ball (implementation depends on your engine)
-    ball = createBallObject(spawnPos)
+    -- Create ball
+    currentBall = Instance.new("Part")
+    currentBall.Name = "DeathBall"
+    currentBall.Shape = Enum.PartType.Ball
+    currentBall.Size = Vector3.new(2, 2, 2)
+    currentBall.Position = spawnPosition
+    currentBall.Color = BALL_COLOR
+    currentBall.Material = Enum.Material.Neon
+    currentBall.Anchored = false
+    currentBall.CanCollide = true
+    currentBall.Massless = true
     
-    -- Set initial velocity toward player with some randomness
-    local direction = {
-        x = (player.x - spawnPos.x) + math.random(-3, 3),
-        y = 0,
-        z = (player.z - spawnPos.z) + math.random(-3, 3)
-    }
+    -- Add velocity toward player with some randomness
+    local direction = (humanoidRootPart.Position - spawnPosition).Unit
+    direction = direction + Vector3.new(
+        math.random(-10, 10)/20,
+        0,
+        math.random(-10, 10)/20
+    ).Unit
     
-    -- Normalize direction and apply speed
-    local length = math.sqrt(direction.x^2 + direction.y^2 + direction.z^2)
-    ball.velocity = {
-        x = direction.x/length * ballSpeed,
-        y = 0,
-        z = direction.z/length * ballSpeed
-    }
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = direction * BALL_SPEED
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Parent = currentBall
+    
+    currentBall.Parent = workspace
+    
+    -- Add touch detection
+    currentBall.Touched:Connect(function(hit)
+        if hit.Parent == character and canParry then
+            parryBall()
+        end
+    end)
+    
+    -- Clean up if ball gets stuck
+    game:GetService("Debris"):AddItem(currentBall, 10)
 end
 
-function update(deltaTime)
-    if ball == nil or player == nil then return end
+-- Function to parry the ball
+local function parryBall()
+    if not currentBall or not currentBall.Parent then return end
+    if not canParry then return end
     
-    -- Check for parry collision
-    local dx = ball.x - player.x
-    local dz = ball.z - player.z
-    local distance = math.sqrt(dx^2 + dz^2)
-    
-    if distance <= parryRadius and canParry then
-        parryBall()
-    end
-    
-    -- Update ball position
-    ball.x = ball.x + ball.velocity.x * deltaTime
-    ball.y = ball.y + ball.velocity.y * deltaTime
-    ball.z = ball.z + ball.velocity.z * deltaTime
-end
-
-function parryBall()
     canParry = false
     
-    -- Reflect ball with some randomness
-    ball.velocity.x = -ball.velocity.x + math.random(-2, 2)
-    ball.velocity.z = -ball.velocity.z + math.random(-2, 2)
+    -- Visual feedback
+    parryCircle.Color = Color3.fromRGB(255, 255, 255)
+    task.delay(0.1, function()
+        parryCircle.Color = PARRY_COLOR
+    end)
     
-    -- Normalize and speed up
-    local length = math.sqrt(ball.velocity.x^2 + ball.velocity.z^2)
-    ball.velocity.x = ball.velocity.x/length * ballSpeed * 1.5
-    ball.velocity.z = ball.velocity.z/length * ballSpeed * 1.5
+    -- Calculate reflection with randomness
+    local ballPosition = currentBall.Position
+    local playerPosition = humanoidRootPart.Position
+    local incomingDirection = (ballPosition - playerPosition).Unit
     
-    -- Start cooldown
-    setTimeout(function()
+    local reflectedDirection = Vector3.new(
+        -incomingDirection.X + math.random(-5, 5)/10,
+        0,
+        -incomingDirection.Z + math.random(-5, 5)/10
+    ).Unit
+    
+    -- Apply new velocity
+    local bodyVelocity = currentBall:FindFirstChildOfClass("BodyVelocity")
+    if bodyVelocity then
+        bodyVelocity.Velocity = reflectedDirection * BALL_SPEED * 1.5
+    end
+    
+    -- Cooldown
+    task.delay(PARRY_COOLDOWN, function()
         canParry = true
-    end, parryCooldown * 1000)
+    end)
 end
 
--- Initialization
-function start()
-    player = getPlayerObject() -- You need to implement this
-    createParryCircleVisual()  -- You need to implement this
+-- Update parry circle position
+local function updateParryCircle()
+    parryCircle.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, 0, math.pi/2)
+end
+
+-- Main game loop
+RunService.Heartbeat:Connect(function(deltaTime)
+    updateParryCircle()
     
-    -- Spawn balls periodically
-    setInterval(function()
-        spawnBall()
-    end, math.random(1000, 3000))
-end
+    if currentBall and currentBall.Parent then
+        -- Add some curve to the ball
+        local bodyVelocity = currentBall:FindFirstChildOfClass("BodyVelocity")
+        if bodyVelocity then
+            bodyVelocity.Velocity = bodyVelocity.Velocity + 
+                Vector3.new(
+                    math.random(-5, 5)/10,
+                    0,
+                    math.random(-5, 5)/10
+                )
+        end
+    end
+end)
 
-start()
+-- Spawn balls periodically
+while true do
+    spawnBall()
+    task.wait(math.random(SPAWN_INTERVAL[1]*10, SPAWN_INTERVAL[2]*10)/10)
+end
